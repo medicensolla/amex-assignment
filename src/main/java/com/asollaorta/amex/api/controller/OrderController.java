@@ -1,7 +1,9 @@
 package com.asollaorta.amex.api.controller;
 
 import com.asollaorta.amex.api.models.Item;
+import com.asollaorta.amex.api.models.ItemDto;
 import com.asollaorta.amex.api.models.Order;
+import com.asollaorta.amex.api.models.OrderDto;
 import com.asollaorta.amex.api.services.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,8 +24,8 @@ public class OrderController {
 
 
     @PostMapping
-    public ResponseEntity<Order> createOrder(@RequestBody Set<Item> items) {
-        Order order = orderService.makeOrder(items);
+    public ResponseEntity<OrderDto> createOrder(@RequestBody Set<ItemDto> items) {
+        OrderDto order = orderService.makeOrder(items);
         return new ResponseEntity<>(order, HttpStatus.CREATED);
     }
 }

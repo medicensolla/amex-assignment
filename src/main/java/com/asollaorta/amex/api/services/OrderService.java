@@ -1,7 +1,9 @@
 package com.asollaorta.amex.api.services;
 
 import com.asollaorta.amex.api.models.Item;
+import com.asollaorta.amex.api.models.ItemDto;
 import com.asollaorta.amex.api.models.Order;
+import com.asollaorta.amex.api.models.OrderDto;
 import com.asollaorta.amex.api.repositories.ItemRepository;
 import com.asollaorta.amex.api.repositories.OrderRepository;
 import com.asollaorta.amex.api.exceptions.ApiException;
@@ -11,8 +13,10 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -22,16 +26,18 @@ public class OrderService {
     private final ItemRepository itemRepository;
 
 
-    public Order makeOrder(Set<Item> items){
+    public OrderDto makeOrder(Set<ItemDto> items){
 
         if (items == null || items.isEmpty()) {
             throw new ApiException("Order must contain at least one item.",
                     HttpStatus.BAD_REQUEST, ZonedDateTime.now());
         }
 
-        Set<Item> validItems = items.stream()
-                .filter(item -> itemRepository.existsById(item.getId()))
+
+        Set<ItemDto> validItems = items.stream()
+                .filter(item -> itemRepository.existsByDescriptionIgnoreCase(item.getDescription()))
                 .collect(Collectors.toSet());
+
 
         if (validItems.isEmpty()) {
             throw new ApiException("None of the items exist in the inventory.",
@@ -39,11 +45,16 @@ public class OrderService {
                     ZonedDateTime.now());
         }
 
-        Order order = new Order();
-        order.setFinalCost(this.finalCostCalculator(validItems));
-        order.setItems(validItems);
 
-        return orderRepository.save(order);
+        Set<Item> validItemsWithPrice = validItems.stream()
+                .map(dto -> itemRepository.findByDescriptionIgnoreCase(dto.getDescription()))
+                .collect(Collectors.toSet());
+
+        Order order = new Order();
+        order.setFinalCost(this.finalCostCalculator(validItemsWithPrice));
+        order.setItems(validItemsWithPrice);
+
+        return orderToDTO(orderRepository.save(order));
     }
 
 
@@ -60,7 +71,34 @@ public class OrderService {
 
     }
 
+    private OrderDto orderToDTO(Order order) {
+        if (order == null) {
+            return null;
+        }
 
+        OrderDto orderDTO = new OrderDto();
+        orderDTO.setFinalCost(order.getFinalCost());
+        orderDTO.setItems(convertItemsToDTO(order.getItems()));
+
+        return orderDTO;
+    }
+
+
+    private Set<ItemDto> convertItemsToDTO(Set<Item> items) {
+        if (items == null) {
+            return null;
+        }
+
+        return items.stream()
+                .map(item -> {
+                    ItemDto itemDTO = new ItemDto();
+                    itemDTO.setCost(item.getCost());
+                    itemDTO.setDescription(item.getDescription());
+                    itemDTO.setQuantity(item.getQuantity());
+                    return itemDTO;
+                })
+                .collect(Collectors.toSet());
+    }
 
 
 }

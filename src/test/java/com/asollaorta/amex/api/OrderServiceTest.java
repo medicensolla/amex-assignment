@@ -2,7 +2,9 @@ package com.asollaorta.amex.api;
 
 import com.asollaorta.amex.api.exceptions.ApiException;
 import com.asollaorta.amex.api.models.Item;
+import com.asollaorta.amex.api.models.ItemDto;
 import com.asollaorta.amex.api.models.Order;
+import com.asollaorta.amex.api.models.OrderDto;
 import com.asollaorta.amex.api.repositories.ItemRepository;
 import com.asollaorta.amex.api.repositories.OrderRepository;
 import com.asollaorta.amex.api.services.OrderService;
@@ -29,87 +31,71 @@ public class OrderServiceTest {
     private OrderRepository orderRepository;
 
     @InjectMocks
-    private OrderService orderService;  // Class under test
+    private OrderService orderService;
 
-    private Item mockItem;
-    private Set<Item> mockItems;
+    private Item apple;
+    private Item orange;
+    private Set<ItemDto> mockItems;
 
     @BeforeEach
-    void setup() {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        mockItem = new Item();
-        mockItem.setId(1L);
-        mockItem.setCost(BigDecimal.valueOf(10.50));
-        mockItem.setQuantity(2);
+        apple = new Item();
+        apple.setDescription("Apple");
+        apple.setCost(BigDecimal.valueOf(0.50));
+        apple.setQuantity(5);
+
+        orange = new Item();
+        orange.setDescription("Orange");
+        orange.setCost(BigDecimal.valueOf(0.75));
+        orange.setQuantity(5);
+
+        ItemDto appleDto = new ItemDto();
+        appleDto.setDescription("Apple");
+        appleDto.setQuantity(5);
+
+        ItemDto orangeDto = new ItemDto();
+        orangeDto.setDescription("Orange");
+        orangeDto.setQuantity(5);
 
         mockItems = new HashSet<>();
-        mockItems.add(mockItem);
-    }
-
-    @Test
-   public void testMakeOrder_Success() {
-        when(itemRepository.existsById(mockItem.getId())).thenReturn(true);
-
-        Order mockOrder = new Order();
-        mockOrder.setId(1L);
-        mockOrder.setItems(mockItems);
-        mockOrder.setFinalCost(BigDecimal.valueOf(21.00));
-
-        when(orderRepository.save(any(Order.class))).thenReturn(mockOrder);
-
-        Order order = orderService.makeOrder(mockItems);
-
-
-
-        assertEquals(1L, order.getId());
-        assertEquals(BigDecimal.valueOf(21.00), order.getFinalCost());
-        assertEquals(1, order.getItems().size());
+        mockItems.add(appleDto);
+        mockItems.add(orangeDto);
     }
 
     @Test
     void testMakeOrder_Success_Task_One() {
 
-        BigDecimal expectedFinalCost = BigDecimal.valueOf(4.25);
+        BigDecimal expectedFinalCost = BigDecimal.valueOf(6.25);
 
-        Item apple = new Item();
-        apple.setId(1L);
-        apple.setDescription("Apple");
-        apple.setCost(BigDecimal.valueOf(0.60));
-        apple.setQuantity(5);
+        when(itemRepository.existsByDescriptionIgnoreCase(apple.getDescription())).thenReturn(true);
+        when(itemRepository.existsByDescriptionIgnoreCase(orange.getDescription())).thenReturn(true);
+        when(itemRepository.findByDescriptionIgnoreCase(apple.getDescription())).thenReturn(apple);
+        when(itemRepository.findByDescriptionIgnoreCase(orange.getDescription())).thenReturn(orange);
 
-        Item orange = new Item();
-        orange.setId(2L);
-        orange.setCost(BigDecimal.valueOf(0.25));
-        orange.setQuantity(5);
+        Order savedOrder = new Order();
+        savedOrder.setItems(Set.of(apple, orange));
+        savedOrder.setFinalCost(expectedFinalCost);
 
-        mockItems = new HashSet<>();
-        mockItems.add(apple);
-        mockItems.add(orange);
+        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
 
-        when(itemRepository.existsById(apple.getId())).thenReturn(true);
-        when(itemRepository.existsById(orange.getId())).thenReturn(true);
-
-
-        Order mockOrder = new Order();
-        mockOrder.setId(1L);
-        mockOrder.setItems(mockItems);
-        mockOrder.setFinalCost(expectedFinalCost);
-
-        when(orderRepository.save(any(Order.class))).thenReturn(mockOrder);
-
-        Order order = orderService.makeOrder(mockItems);
+        OrderDto order = orderService.makeOrder(mockItems);
 
         assertAll("Order Validation",
-                () -> assertEquals(1L, order.getId(), "Order ID match"),
-                () -> assertEquals(expectedFinalCost, order.getFinalCost(), "Final cost match"),
-                () -> assertEquals(2, order.getItems().size(), "Order items count match")
+                () -> assertEquals(expectedFinalCost, order.getFinalCost(), "Final cost should match"),
+                () -> assertEquals(2, order.getItems().size(), "Order items count should match"),
+                () -> assertTrue(order.getItems().stream()
+                        .anyMatch(item -> item.getDescription().equals("Apple")), "Order should contain Apple"),
+                () -> assertTrue(order.getItems().stream()
+                        .anyMatch(item -> item.getDescription().equals("Orange")), "Order should contain Orange")
         );
     }
 
+
     @Test
     public void testMakeOrder_EmptyItems_ThrowsException() {
-        Set<Item> emptyItems = new HashSet<>();
+        Set<ItemDto> emptyItems = new HashSet<>();
 
         ApiException exception = assertThrows(ApiException.class, () -> {
             orderService.makeOrder(emptyItems);
@@ -121,7 +107,7 @@ public class OrderServiceTest {
 
     @Test
     public void testMakeOrder_InvalidItems_ThrowsException() {
-        when(itemRepository.existsById(mockItem.getId())).thenReturn(false);
+        when(itemRepository.existsByDescriptionIgnoreCase(apple.getDescription())).thenReturn(false);
 
         ApiException exception = assertThrows(ApiException.class, () -> {
             orderService.makeOrder(mockItems);

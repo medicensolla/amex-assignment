@@ -6,4 +6,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ItemRepository extends JpaRepository<Item,Long> {
+
+    Item findByDescriptionIgnoreCase(String description);
+
+    boolean existsByDescriptionIgnoreCase(String description);
 }

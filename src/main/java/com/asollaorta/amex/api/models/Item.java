@@ -1,5 +1,6 @@
 package com.asollaorta.amex.api.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -25,5 +26,6 @@ public class Item {
     private Integer quantity;
 
     @ManyToMany(mappedBy = "items")
+    @JsonIgnore
     private Set<Order> orders;
 }

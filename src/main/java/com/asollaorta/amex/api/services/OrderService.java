@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,20 +46,38 @@ public class OrderService {
 
 
         Set<Item> validItemsWithPrice = validItems.stream()
-                .map(dto -> itemRepository.findByDescriptionIgnoreCase(dto.getDescription()))
+                .map(dto -> {
+                    Item item = new Item();
+                    item.setDescription(dto.getDescription());
+                    item.setCost(itemRepository.getCostByDescriptionIgnoreCase(dto.getDescription()));
+                    item.setQuantity(dto.getQuantity());
+                    return item;
+                })
                 .collect(Collectors.toSet());
 
         Order order = new Order();
         order.setFinalCost(this.finalCostCalculator(validItemsWithPrice));
         order.setItems(validItemsWithPrice);
 
+        saveItems(validItemsWithPrice);
+
         return orderToDTO(orderRepository.save(order));
+    }
+
+    private void saveItems(Set<Item> items) {
+        Item item = new Item();
+        item.setDescription(item.getDescription().toLowerCase());
+        item.setCost(item.getCost());
+        item.setQuantity(item.getQuantity());
+        itemRepository.saveAll(items);
+
     }
 
 
     private BigDecimal finalCostCalculator(Set<Item> validItems){
 
         BigDecimal totalCost = BigDecimal.ZERO;
+
 
         for (Item item : validItems) {
             BigDecimal itemTotal = item.getCost().multiply(BigDecimal.valueOf(item.getQuantity()));
@@ -70,6 +87,7 @@ public class OrderService {
         return totalCost;
 
     }
+
 
     private OrderDto orderToDTO(Order order) {
         if (order == null) {

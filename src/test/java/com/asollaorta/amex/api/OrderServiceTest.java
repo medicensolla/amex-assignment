@@ -21,6 +21,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 public class OrderServiceTest {
@@ -71,8 +72,8 @@ public class OrderServiceTest {
 
         when(itemRepository.existsByDescriptionIgnoreCase(apple.getDescription())).thenReturn(true);
         when(itemRepository.existsByDescriptionIgnoreCase(orange.getDescription())).thenReturn(true);
-        when(itemRepository.findByDescriptionIgnoreCase(apple.getDescription())).thenReturn(apple);
-        when(itemRepository.findByDescriptionIgnoreCase(orange.getDescription())).thenReturn(orange);
+        when(itemRepository.findByDescriptionIgnoreCase(anyString())).thenReturn(apple);
+        when(itemRepository.findByDescriptionIgnoreCase(anyString())).thenReturn(orange);
 
         Order savedOrder = new Order();
         savedOrder.setItems(Set.of(apple, orange));

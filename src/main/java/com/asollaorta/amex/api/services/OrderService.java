@@ -44,12 +44,14 @@ public class OrderService {
                     ZonedDateTime.now());
         }
 
+        BigDecimal bigDecimal = itemRepository.findByDescriptionIgnoreCase("Apple").getCost();
+
 
         Set<Item> validItemsWithPrice = validItems.stream()
                 .map(dto -> {
                     Item item = new Item();
                     item.setDescription(dto.getDescription());
-                    item.setCost(itemRepository.getCostByDescriptionIgnoreCase(dto.getDescription()));
+                    item.setCost(itemRepository.findByDescriptionIgnoreCase(dto.getDescription()).getCost());
                     item.setQuantity(dto.getQuantity());
                     return item;
                 })
@@ -59,18 +61,9 @@ public class OrderService {
         order.setFinalCost(this.finalCostCalculator(validItemsWithPrice));
         order.setItems(validItemsWithPrice);
 
-        saveItems(validItemsWithPrice);
+       itemRepository.saveAll(validItemsWithPrice);
 
         return orderToDTO(orderRepository.save(order));
-    }
-
-    private void saveItems(Set<Item> items) {
-        Item item = new Item();
-        item.setDescription(item.getDescription().toLowerCase());
-        item.setCost(item.getCost());
-        item.setQuantity(item.getQuantity());
-        itemRepository.saveAll(items);
-
     }
 
 

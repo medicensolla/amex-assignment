@@ -1,12 +1,10 @@
 package com.asollaorta.amex.api.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(name = "items")
@@ -26,7 +24,8 @@ public class Item {
     @Column(nullable = false)
     private Integer quantity;
 
-    @ManyToMany(mappedBy = "items")
-    @JsonIgnore
-    private Set<Order> orders = new HashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    @JsonBackReference
+    private Order order;
 }

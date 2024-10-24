@@ -16,8 +16,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,7 +36,7 @@ public class OrderServiceTest {
     private Item apple;
     private Item orange;
     private Set<ItemDto> mockItems;
-    private Set<Item> itemSet;
+    private List<Item> itemSet;
 
     @BeforeEach
     void setUp() {
@@ -65,7 +64,7 @@ public class OrderServiceTest {
         mockItems.add(appleDto);
         mockItems.add(orangeDto);
 
-        itemSet = new HashSet<>();
+        itemSet = new ArrayList<>();
         itemSet.add(apple);
         itemSet.add(orange);
     }
@@ -112,8 +111,8 @@ public class OrderServiceTest {
         when(itemRepository.findFirstByDescriptionIgnoreCase(anyString())).thenReturn(apple);
 
         Order savedOrder = new Order();
-        savedOrder.setItems(Set.of(apple));
-        savedOrder.setFinalCost(orderService.finalCostCalculator(Set.of(apple)));
+        savedOrder.setItems(List.of(apple));
+        savedOrder.setFinalCost(orderService.finalCostCalculator(List.of(apple)));
 
         when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
 
@@ -149,5 +148,78 @@ public class OrderServiceTest {
 
         assertEquals("None of the items exist in the inventory.", exception.getMessage());
         assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+    }
+
+
+    @Test
+    void testGetAllOrders_Success() {
+
+        Order order1 = new Order();
+        Order order2 = new Order();
+        List<Order> orders = List.of(order1, order2);
+
+        when(orderRepository.findAll()).thenReturn(orders);
+
+
+        List<OrderDto> result = orderService.getAllOrders();
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void testGetAllOrders_NoOrdersFound() {
+
+        when(orderRepository.findAll()).thenReturn(Collections.emptyList());
+
+        ApiException exception = assertThrows(ApiException.class, () -> {
+            orderService.getAllOrders();
+        });
+
+        assertEquals("No orders found", exception.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus());
+    }
+
+    @Test
+    void testGetOrderById_Success() {
+        Long orderId = 1L;
+        Order mockOrder = new Order();
+        mockOrder.setId(orderId);
+        mockOrder.setFinalCost(BigDecimal.valueOf(100.50));
+        mockOrder.setItems(List.of(apple, orange));
+
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
+
+        OrderDto result = orderService.getOrderById(orderId);
+
+        assertAll("GetOrder Validation",
+                () -> assertNotNull(result, "Order should not be null"),
+                () -> assertEquals(orderId, result.getOrderId(), "Order ID should match"),
+                () -> assertEquals(BigDecimal.valueOf(100.50), result.getFinalCost(), "Final cost should match"),
+                () -> assertFalse(result.getItems().isEmpty(), "Order items should not be empty"),
+                () -> assertTrue(
+                        result.getItems().stream()
+                                .anyMatch(item -> item.getDescription().equals("Apple")),
+                        "Order should contain an item with description 'Apple'"
+                )
+        );
+    }
+
+    @Test
+    void testGetOrderById_NotFound() {
+        Long orderId = 1L;
+        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+
+        ApiException exception = assertThrows(ApiException.class, () -> {
+            orderService.getOrderById(orderId);
+        });
+
+        assertAll("Exception Validation",
+                () -> assertEquals(String.format("Order with ID %d not found.", orderId), exception.getMessage(),
+                        "Exception message should match"),
+                () -> assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus(),
+                        "HTTP status should be NOT_FOUND")
+        );
     }
 }

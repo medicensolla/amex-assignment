@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -46,7 +47,7 @@ public class OrderService {
         }
 
 
-        Set<Item> validItemsWithPrice = validItems.stream()
+        List<Item> validItemsWithPrice = validItems.stream()
                 .map(dto -> {
                     Item item = new Item();
                     item.setDescription(dto.getDescription());
@@ -54,25 +55,50 @@ public class OrderService {
                     item.setQuantity(dto.getQuantity());
                     return item;
                 })
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
 
         Order order = new Order();
         order.setFinalCost(this.finalCostCalculator(validItemsWithPrice));
         order.setItems(validItemsWithPrice);
 
-        itemRepository.saveAll(validItemsWithPrice);
 
-        return orderToDTO(orderRepository.save(order));
+        return saveOrderAndItems(order, validItemsWithPrice);
     }
 
-    public List<Order> getAllOrders() {
+    public List<OrderDto> getAllOrders() {
         List<Order> orders = orderRepository.findAll();
+        if (orders.isEmpty()) {
+            throw new ApiException("No orders found", HttpStatus.NOT_FOUND, ZonedDateTime.now());
+        }
 
-        return orders;
+        return orders.stream()
+                .map(this::orderToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public OrderDto getOrderById(Long id) {
+        Optional<Order> order = orderRepository.findById(id);
+        if (order.isEmpty()) {
+            throw new ApiException(String.format("Order with ID %d not found.", id),
+                     HttpStatus.NOT_FOUND, ZonedDateTime.now());
+        }
+
+        return orderToDTO(order.get());
+    }
+
+    private OrderDto saveOrderAndItems(Order order, List<Item> validatedItems) {
+        Order newOrder = orderRepository.save(order);
+
+        for (Item item : validatedItems) {
+            item.setOrder(newOrder);
+            itemRepository.save(item);
+        }
+
+        return orderToDTO(newOrder);
     }
 
 
-    public BigDecimal finalCostCalculator(Set<Item> validItems) {
+    public BigDecimal finalCostCalculator(List<Item> validItems) {
         BigDecimal totalCost = BigDecimal.ZERO;
 
         for (Item item : validItems) {
@@ -102,6 +128,7 @@ public class OrderService {
         }
 
         OrderDto orderDTO = new OrderDto();
+        orderDTO.setOrderId(order.getId());
         orderDTO.setFinalCost(order.getFinalCost());
         orderDTO.setItems(convertItemsToDTO(order.getItems()));
 
@@ -109,7 +136,7 @@ public class OrderService {
     }
 
 
-    private Set<ItemDto> convertItemsToDTO(Set<Item> items) {
+    private Set<ItemDto> convertItemsToDTO(List<Item> items) {
         if (items == null) {
             return null;
         }

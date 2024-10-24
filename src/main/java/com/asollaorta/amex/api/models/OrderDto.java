@@ -8,6 +8,7 @@ import java.util.Set;
 @Data
 public class OrderDto {
 
+    private Long orderId;
     private BigDecimal finalCost;
     private Set<ItemDto> items;
 }

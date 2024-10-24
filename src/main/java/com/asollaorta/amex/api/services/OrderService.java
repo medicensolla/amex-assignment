@@ -1,12 +1,12 @@
 package com.asollaorta.amex.api.services;
 
+import com.asollaorta.amex.api.exceptions.ApiException;
 import com.asollaorta.amex.api.models.Item;
 import com.asollaorta.amex.api.models.ItemDto;
 import com.asollaorta.amex.api.models.Order;
 import com.asollaorta.amex.api.models.OrderDto;
 import com.asollaorta.amex.api.repositories.ItemRepository;
 import com.asollaorta.amex.api.repositories.OrderRepository;
-import com.asollaorta.amex.api.exceptions.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ public class OrderService {
     private final ItemRepository itemRepository;
 
 
-    public OrderDto makeOrder(Set<ItemDto> items){
+    public OrderDto makeOrder(Set<ItemDto> items) {
 
         if (items == null || items.isEmpty()) {
             throw new ApiException("Order must contain at least one item.",
@@ -44,14 +44,12 @@ public class OrderService {
                     ZonedDateTime.now());
         }
 
-        BigDecimal bigDecimal = itemRepository.findByDescriptionIgnoreCase("Apple").getCost();
-
 
         Set<Item> validItemsWithPrice = validItems.stream()
                 .map(dto -> {
                     Item item = new Item();
                     item.setDescription(dto.getDescription());
-                    item.setCost(itemRepository.findByDescriptionIgnoreCase(dto.getDescription()).getCost());
+                    item.setCost(itemRepository.findFirstByDescriptionIgnoreCase(dto.getDescription()).getCost());
                     item.setQuantity(dto.getQuantity());
                     return item;
                 })
@@ -61,24 +59,33 @@ public class OrderService {
         order.setFinalCost(this.finalCostCalculator(validItemsWithPrice));
         order.setItems(validItemsWithPrice);
 
-       itemRepository.saveAll(validItemsWithPrice);
+        itemRepository.saveAll(validItemsWithPrice);
 
         return orderToDTO(orderRepository.save(order));
     }
 
 
-    private BigDecimal finalCostCalculator(Set<Item> validItems){
-
+    private BigDecimal finalCostCalculator(Set<Item> validItems) {
         BigDecimal totalCost = BigDecimal.ZERO;
 
-
         for (Item item : validItems) {
-            BigDecimal itemTotal = item.getCost().multiply(BigDecimal.valueOf(item.getQuantity()));
+            BigDecimal itemTotal;
+
+            if (item.getDescription().equalsIgnoreCase("Apple")) {
+                int chargeableQuantity = (item.getQuantity() / 2) + (item.getQuantity() % 2);
+                itemTotal = item.getCost().multiply(BigDecimal.valueOf(chargeableQuantity));
+
+            } else if (item.getDescription().equalsIgnoreCase("Orange")) {
+                int chargeableQuantity = (item.getQuantity() / 3) * 2 + (item.getQuantity() % 3);
+                itemTotal = item.getCost().multiply(BigDecimal.valueOf(chargeableQuantity));
+            } else {
+                itemTotal = item.getCost().multiply(BigDecimal.valueOf(item.getQuantity()));
+            }
+
             totalCost = totalCost.add(itemTotal);
         }
 
         return totalCost;
-
     }
 
 

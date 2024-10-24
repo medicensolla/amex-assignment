@@ -1,8 +1,6 @@
 package com.asollaorta.amex.api.controller;
 
-import com.asollaorta.amex.api.models.Item;
 import com.asollaorta.amex.api.models.ItemDto;
-import com.asollaorta.amex.api.models.Order;
 import com.asollaorta.amex.api.models.OrderDto;
 import com.asollaorta.amex.api.services.OrderService;
 import lombok.RequiredArgsConstructor;

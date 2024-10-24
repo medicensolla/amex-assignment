@@ -1,6 +1,5 @@
 package com.asollaorta.amex.api.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -20,5 +19,10 @@ public class Order {
     private BigDecimal finalCost;
 
     @ManyToMany
+    @JoinTable(
+            name = "order_items",
+            joinColumns = @JoinColumn(name = "order_id"),
+            inverseJoinColumns = @JoinColumn(name = "item_id")
+    )
     private Set<Item> items;
 }

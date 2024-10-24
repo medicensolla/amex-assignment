@@ -37,6 +37,7 @@ public class OrderServiceTest {
     private Item apple;
     private Item orange;
     private Set<ItemDto> mockItems;
+    private Set<Item> itemSet;
 
     @BeforeEach
     void setUp() {
@@ -44,12 +45,12 @@ public class OrderServiceTest {
 
         apple = new Item();
         apple.setDescription("Apple");
-        apple.setCost(BigDecimal.valueOf(0.50));
+        apple.setCost(BigDecimal.valueOf(0.60));
         apple.setQuantity(5);
 
         orange = new Item();
         orange.setDescription("Orange");
-        orange.setCost(BigDecimal.valueOf(0.75));
+        orange.setCost(BigDecimal.valueOf(0.25));
         orange.setQuantity(5);
 
         ItemDto appleDto = new ItemDto();
@@ -63,33 +64,65 @@ public class OrderServiceTest {
         mockItems = new HashSet<>();
         mockItems.add(appleDto);
         mockItems.add(orangeDto);
+
+        itemSet = new HashSet<>();
+        itemSet.add(apple);
+        itemSet.add(orange);
     }
 
     @Test
     void testMakeOrder_Success_Task_One() {
 
-        BigDecimal expectedFinalCost = BigDecimal.valueOf(6.25);
+        BigDecimal expectedFinalCost = BigDecimal.valueOf(1.10);
+
+        apple.setQuantity(1);
+        orange.setQuantity(2);
 
         when(itemRepository.existsByDescriptionIgnoreCase(apple.getDescription())).thenReturn(true);
         when(itemRepository.existsByDescriptionIgnoreCase(orange.getDescription())).thenReturn(true);
-        when(itemRepository.findByDescriptionIgnoreCase(anyString())).thenReturn(apple);
-        when(itemRepository.findByDescriptionIgnoreCase(anyString())).thenReturn(orange);
+        when(itemRepository.findFirstByDescriptionIgnoreCase(anyString())).thenReturn(apple);
+        when(itemRepository.findFirstByDescriptionIgnoreCase(anyString())).thenReturn(orange);
 
         Order savedOrder = new Order();
-        savedOrder.setItems(Set.of(apple, orange));
-        savedOrder.setFinalCost(expectedFinalCost);
+        savedOrder.setItems(itemSet);
+        savedOrder.setFinalCost(orderService.finalCostCalculator(itemSet));
 
         when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
 
         OrderDto order = orderService.makeOrder(mockItems);
 
         assertAll("Order Validation",
-                () -> assertEquals(expectedFinalCost, order.getFinalCost(), "Final cost should match"),
+                () -> assertTrue(expectedFinalCost.compareTo(order.getFinalCost()) == 0, "Final cost should match"),
                 () -> assertEquals(2, order.getItems().size(), "Order items count should match"),
                 () -> assertTrue(order.getItems().stream()
                         .anyMatch(item -> item.getDescription().equals("Apple")), "Order should contain Apple"),
                 () -> assertTrue(order.getItems().stream()
                         .anyMatch(item -> item.getDescription().equals("Orange")), "Order should contain Orange")
+        );
+    }
+
+    @Test
+    void testMakeOrder_Success_Task_Two() {
+
+        BigDecimal expectedFinalCost = BigDecimal.valueOf(0.60);
+
+        apple.setQuantity(2);
+
+        when(itemRepository.existsByDescriptionIgnoreCase(apple.getDescription())).thenReturn(true);
+        when(itemRepository.findFirstByDescriptionIgnoreCase(anyString())).thenReturn(apple);
+
+        Order savedOrder = new Order();
+        savedOrder.setItems(Set.of(apple));
+        savedOrder.setFinalCost(orderService.finalCostCalculator(Set.of(apple)));
+
+        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+
+        OrderDto order = orderService.makeOrder(mockItems);
+
+        assertAll("Order Validation",
+                () -> assertTrue(expectedFinalCost.compareTo(order.getFinalCost()) == 0, "Final cost should match"),
+                () -> assertTrue(order.getItems().stream()
+                        .anyMatch(item -> item.getDescription().equals("Apple")), "Order should contain Apple")
         );
     }
 

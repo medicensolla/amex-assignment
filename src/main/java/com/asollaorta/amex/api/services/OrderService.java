@@ -65,7 +65,7 @@ public class OrderService {
     }
 
 
-    private BigDecimal finalCostCalculator(Set<Item> validItems) {
+    public BigDecimal finalCostCalculator(Set<Item> validItems) {
         BigDecimal totalCost = BigDecimal.ZERO;
 
         for (Item item : validItems) {

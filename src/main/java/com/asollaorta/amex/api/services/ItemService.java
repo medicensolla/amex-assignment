@@ -14,7 +14,7 @@ public class ItemService {
     private final ItemRepository itemRepository;
 
 
-    public List<Item> getAllItems(){
+    public List<Item> getAllItems() {
         return itemRepository.findAll();
     }
 }

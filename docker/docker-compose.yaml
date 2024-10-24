@@ -5,7 +5,7 @@ services:
     container_name: postgres-db
     environment:
       POSTGRES_DB: orders
-      POSTGRES_USER: user
+      POSTGRES_USER: userx
       POSTGRES_PASSWORD: SuperSecurePassword
     ports:
       - "5432:5432"

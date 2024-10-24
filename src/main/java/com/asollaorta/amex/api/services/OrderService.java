@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,6 +63,12 @@ public class OrderService {
         itemRepository.saveAll(validItemsWithPrice);
 
         return orderToDTO(orderRepository.save(order));
+    }
+
+    public List<Order> getAllOrders() {
+        List<Order> orders = orderRepository.findAll();
+
+        return orders;
     }
 
 

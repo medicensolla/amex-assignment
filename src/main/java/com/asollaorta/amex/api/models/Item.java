@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -27,5 +28,5 @@ public class Item {
 
     @ManyToMany(mappedBy = "items")
     @JsonIgnore
-    private Set<Order> orders;
+    private Set<Order> orders = new HashSet<>();
 }

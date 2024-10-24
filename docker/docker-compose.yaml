@@ -5,13 +5,13 @@ services:
     container_name: postgres-db
     environment:
       POSTGRES_DB: orders
-      POSTGRES_USER: userx
+      POSTGRES_USER: user
       POSTGRES_PASSWORD: SuperSecurePassword
     ports:
       - "5432:5432"
     volumes:
-      - ./docker:/docker-entrypoint-initdb.d/
       - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
   pgdata:
